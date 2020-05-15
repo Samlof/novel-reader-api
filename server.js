@@ -75,4 +75,9 @@ async function updateDb() {
     addToDb(link.name, link.link);
   }
 }
-updateDb();
+
+exports.handler = (event, context, callback) => {
+  updateDb().then(() => {
+    callback(null, "Finished");
+  });
+};
