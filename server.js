@@ -65,19 +65,36 @@ async function getNewLinks() {
 }
 
 async function updateDb() {
-  const newLinks = await getNewLinks();
-  const oldLinks = await getDbLinks();
+  const newLinksTask = getNewLinks();
+  const dbLinksTask = getDbLinks();
+
+  const newLinks = await newLinksTask;
+  if (newLinks.length === 0) return -1;
+
+  const oldLinks = await dbLinksTask;
 
   const diffLinks = newLinks.filter((x) =>
     oldLinks.every((y) => y.name !== x.name)
   );
-  for (const link of diffLinks) {
-    addToDb(link.name, link.link);
-  }
+
+  if (diffLinks.length === 0) return 1;
+  await Promise.all(diffLinks.map((x) => addToDb(x.name, x.link)));
+  return 1;
 }
 
-exports.handler = (event, context, callback) => {
-  updateDb().then(() => {
-    callback(null, "Finished");
-  });
+exports.handler = async (event) => {
+  const ret = await updateDb();
+  if (ret === -1) {
+    const response = {
+      statusCode: 400,
+      body: JSON.stringify("Failed to find links"),
+    };
+    return response;
+  }
+  const response = {
+    statusCode: 200,
+    body: JSON.stringify("Hello from Lambda!"),
+  };
+
+  return response;
 };
